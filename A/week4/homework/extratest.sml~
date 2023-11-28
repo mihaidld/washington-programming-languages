@@ -1,0 +1,19 @@
+use "extra.sml";
+
+datatype color = Red | Green | Blue
+val f = (fn a => if a = "foo" then NONE else SOME 5);
+val g = fn x => case x of
+		     Red => NONE 
+		   | Green => SOME "foo"
+		   | _ => SOME "bar"
+fun h n = case n of 0 => NONE 
+		  | 1 => SOME "foo"
+		  | _ => SOME "bar" 
+	   
+val test1 = compose_opt f g Red = NONE;
+val test1a = compose_opt f g Green= NONE;
+val test1b = compose_opt f g Blue = SOME 5;
+
+val test2 = do_until (fn x => x div 2) (fn x => x mod 2 <> 1) 20 = 5;
+val test2a = do_until (fn x => x div 2) (fn x => x mod 2 <> 1) 5 = 5;
+val test2b= do_until (fn x => x div 2) (fn x => x mod 2 <> 1) 4 = 1;

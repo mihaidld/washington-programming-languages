@@ -1,0 +1,164 @@
+(* Note that the grade might be absent (presumably because the student
+unregistered from the course). *)
+type student_id = int
+type grade = int (* must be in 0 to 100 range *)
+type final_grade = { id : student_id, grade : grade option }
+datatype pass_fail = pass | fail;
+
+(* 1. Write a function pass_or_fail of type
+{grade : int option, id : ’a} -> pass_fail that takes a  final_grade (or, as
+the type indicates, a more general type) and returns pass if the grade field
+contains SOME i for an i≥75 (else fail). *)
+
+(* {grade : int option, id : ’a} -> pass_fail*)
+fun pass_or_fail  { id = _, grade = gr } =
+    case gr of
+	SOME i => if i >= 75 then pass else fail
+      | NONE => fail;
+
+(* 2. Using  pass_or_fail as a helper function, write a function has_passed of
+type {grade : int option, id : ’a} -> bool that returns true if and only if
+the grade field contains SOME i for an i≥75.*)
+
+(* {grade : int option, id : 'a} -> bool *)
+fun has_passed g = pass_or_fail g = pass;
+
+(* 3. Using has_passed as a helper function, write a function number_passed that
+takes a list of type final_grade (or a more general type) and returns how many
+list elements have passing (again, ≥75) grades. *)
+
+(*final_grade list -> int*)
+fun number_passed xs =
+    case xs of
+	[] => 0
+      | x::xs' => (if has_passed x then 1 else 0) + number_passed xs';
+
+(* 4. Write a function number_misgraded of type
+(pass_fail * final_grade) list -> int that indicates how many list elements are
+"mislabeled" where mislabeling means a pair (pass,x) where has_passed x is 
+false or (fail,x) where has_passed x is true. *)
+
+(* bind parts of pair to variables pf and gr then check if correctly graded with
+ pass_or_fail gr = pf*)
+(* (pass_fail * final_grade) list -> int*)
+fun number_misgraded xs =
+    case xs of
+	[] => 0
+      | (pf,gr)::xs' => (if pass_or_fail gr = pf then 0 else 1) +
+			number_misgraded xs';
+
+datatype 'a tree = leaf 
+                 | node of { value : 'a, left : 'a tree, right : 'a tree }
+datatype flag = leave_me_alone | prune_me;
+
+(* 5. Write a function tree_height that accepts an ’a tree and evaluates to a
+height of this tree. The height of a tree is the length of the longest path to
+a leaf. Thus the height of a leaf is 0.*)
+
+(* 'a tree -> int *)
+fun tree_height t =
+    case t of
+	leaf => 0
+      | node {value =  _, left = tl, right = tr}
+	=> 1 + Int.max(tree_height tl, tree_height tr);
+
+(* 6. Write a function sum_tree that takes an int tree and evaluates to the sum
+of all values in the nodes.*)
+								  
+(* int tree -> int *)
+fun sum_tree t =
+    case t of
+	leaf => 0
+      | node {value = v, left = tl, right = tr}
+	=> v + sum_tree tl + sum_tree tr;
+
+(* 7. Write a function gardener of type flag tree -> flag tree such that its
+structure is identical to the original tree except all nodes of the input
+containing prune_me are (along with all their descendants) replaced with a leaf.
+*)
+
+(* flag tree -> flag tree *)
+fun gardener t =
+    case t of
+	leaf => leaf
+      | node {value = v, left = tl, right = tr}
+	=> if v = prune_me
+	   then leaf (*convert into leaf all nodes holding prune_me flag*)
+		    (*keep pruning left and right branches*)
+	   else node {value = v, left = gardener tl, right = gardener tr};
+
+(* 8. Re-implement various functions provided in the SML standard libraries for lists and options.  See http://sml-family.org/Basis/list.html and 
+http://sml-family.org/Basis/option.html
+Good examples include last, take, drop, concat, getOpt, and join.*)
+
+(* last l
+returns the last element of l. It raises Empty if l is nil.*)
+
+(* 'a list -> 'a*)
+fun last1 l =
+    case l of
+	[] => raise List.Empty
+      | x::[] => x
+      | head::neck::tail => last1 (neck::tail);
+
+(* take (l, i)
+returns the first i elements of the list l. It raises Subscript if i < 0 or
+i > length l. We have take(l, length l) = l.*)
+(* General.Subscript is an exception indicating that an index is out of range,
+typically arising when the program is accessing an element in an aggregate data
+structure (such as a list, string, array, or vector).*)
+
+(* 'a list * int -> 'a list*)
+fun take1 (l, i) =
+    if  i < 0 orelse i > length l
+    then raise General.Subscript
+    else (* 0 <= i <= length l *)
+	case (l,i) of
+	    (_, 0) => [] (*don't take anything*)
+	  (* since i >=1 list can not be empty*)
+	  | (x::xs',n) => x::take1(xs',n-1);
+
+(* drop (l, i)
+returns what is left after dropping the first i elements of the list l.
+It raises Subscript if i < 0 or i > length l.
+It holds that take(l, i) @ drop(l, i) = l when 0 <= i <= length l.
+We also have drop(l, length l) = [].*)
+
+(* 'a list * int -> 'a list *)
+fun drop1 (l, i) =
+    if  i < 0 orelse i > length l
+    then raise General.Subscript
+    else (* 0 <= i <= length l *)
+	case (l,i) of
+	    (_, 0) => l (* i = 0 so return full remaining list*)
+	  (* since i >= 1 list can not be empty*)
+	  | (x::xs',n) => drop1(xs',n-1);
+
+(* concat l
+returns the list that is the concatenation of all the lists in l in order.
+concat[l1,l2,...ln] = l1 @ l2 @ ... @ ln*)
+
+(* 'a list list -> 'a list*)
+fun concat1 l =
+    case l of
+	[] => []
+      | hl::tl => hl @ concat1 tl;
+
+
+(* getOpt (opt, a)
+returns v if opt is SOME(v); otherwise it returns a.*)
+
+(* 'a option * 'a -> 'a *)
+fun getOpt1 (opt, a) =
+    case opt of
+	SOME v => v
+      | _ => a 
+
+
+(* The join function maps NONE to NONE and SOME(v) to v.*)
+
+(* 'a option option -> 'a option*)
+fun join1 opt =
+    case opt of
+	NONE => NONE
+      | SOME v => v 

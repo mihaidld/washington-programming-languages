@@ -1,0 +1,15 @@
+---
+triple:          'x86_64-apple-darwin'
+binary-path:     64_c_without_closures
+relocations:
+  - { offsetInCU: 0x1E, offset: 0x1E, size: 0x8, addend: 0x0, symName: _makelist, symObjAddr: 0x0, symBinAddr: 0x1000034A0, symSize: 0x120 }
+  - { offsetInCU: 0x88, offset: 0x88, size: 0x8, addend: 0x0, symName: _makelist, symObjAddr: 0x0, symBinAddr: 0x1000034A0, symSize: 0x120 }
+  - { offsetInCU: 0xCC, offset: 0xCC, size: 0x8, addend: 0x0, symName: _map, symObjAddr: 0x120, symBinAddr: 0x1000035C0, symSize: 0x160 }
+  - { offsetInCU: 0x110, offset: 0x110, size: 0x8, addend: 0x0, symName: _filter, symObjAddr: 0x280, symBinAddr: 0x100003720, symSize: 0x280 }
+  - { offsetInCU: 0x154, offset: 0x154, size: 0x8, addend: 0x0, symName: _length, symObjAddr: 0x500, symBinAddr: 0x1000039A0, symSize: 0xE0 }
+  - { offsetInCU: 0x18A, offset: 0x18A, size: 0x8, addend: 0x0, symName: _doubleInt, symObjAddr: 0x5E0, symBinAddr: 0x100003A80, symSize: 0x60 }
+  - { offsetInCU: 0x1C0, offset: 0x1C0, size: 0x8, addend: 0x0, symName: _doubleAll, symObjAddr: 0x640, symBinAddr: 0x100003AE0, symSize: 0x30 }
+  - { offsetInCU: 0x1E8, offset: 0x1E8, size: 0x8, addend: 0x0, symName: _isN, symObjAddr: 0x670, symBinAddr: 0x100003B10, symSize: 0x30 }
+  - { offsetInCU: 0x21E, offset: 0x21E, size: 0x8, addend: 0x0, symName: _countNs, symObjAddr: 0x6A0, symBinAddr: 0x100003B40, symSize: 0x40 }
+  - { offsetInCU: 0x254, offset: 0x254, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x6E0, symBinAddr: 0x100003B80, symSize: 0x31B }
+...

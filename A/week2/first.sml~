@@ -1,0 +1,39 @@
+(* This is a comment. This is our first program. *)
+
+(* Variable bindings : val x = e; *)
+val x = 34; (* int *)
+(* First program types checks, then it runs with C-c C-s *)
+
+(* static environment x : int
+Because 34 is constant integer then x will hold an int *)
+
+(* dynamic environment: x --> 34 *)
+
+val y = 17;
+(* static environment x : int, y : int *)
+(* dynamic environment: x--> 34, y --> 17 *)
+
+
+(* val it = () : unit  is the result of running use*)
+
+val z = (x + y) + (y + 2);
+(* static environment: x : int, y : int, z : int *)
+(* dynamic environment: x --> 34, y --> 17, z --> 70 *)
+
+
+val q = z + 1;
+(* static environment: x : int, y : int, z : int, q : int *)
+(* dynamic environment: x--> 34, y --> 17, z --> 70, z --> 71 *)
+
+val abs_of_z = if z < 0 then 0 - z else z;
+(*if expression first evaluates subexpression z < 0, looks up z in
+ dynamic environment, gets 70, asks 70 less than 0. it's false. so
+ ignores expression 0 - z and evaluates z, gets 70 so puts result 70
+ as value of abs_of_z *)
+
+(* static checking between if and then (z < 0) must be of type bool
+ 2 branches 0 - z and z can have any type, but must be same type *)
+(* static environment abs_of_z : int *)
+(* dynamic environment ... , abs_of_z --> 70 *)
+
+val abs_of_z_simpler = abs z; (* or abs(z) *)

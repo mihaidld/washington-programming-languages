@@ -1,0 +1,17 @@
+(* 1. Write a function alternate : int list -> int that takes a list of numbers
+ * and adds them with alternating sign. For example 
+ * alternate [1,2,3,4] = 1 - 2 + 3 - 4 = -2
+ * alternate [1,2,3,4] = 1 - 2 + 3 - 4 = -2. *)
+
+(*use helper with extra param sign to know pos/neg turn*)
+(* int list -> int *)
+fun alternate (lst : int list) =
+    let f (lst : int list, sign : bool) =
+	if null lst
+	then 0
+	else if sign
+	then f (tl lst) + hd lst
+	else f (tl lst) - hd lst
+    in f(lst, true) (*initialize sign to true*)
+    end
+	

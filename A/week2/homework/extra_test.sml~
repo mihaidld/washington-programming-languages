@@ -1,0 +1,4 @@
+use "extra.sml";
+
+val test1 = alternate [1,2,3,4] = 1 - 2 + 3 - 4 = -2;
+val test1a = alternate [1,2,3,4] = 1 - 2 + 3 - 4 = -2;

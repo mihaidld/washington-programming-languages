@@ -1,0 +1,491 @@
+(* Coursera Programming Languages, Homework 3, Provided Code *)
+
+(**** you can put all your code here ****)
+
+(* 1. Write a function only_capitals that takes a string list and returns a
+string list that has only the strings in the argument that start with an
+uppercase letter. Assume all strings have at least 1 character. Use List.filter,
+Char.isUpper, and String.sub to make a 1-2 line solution. *)
+
+(* string list -> string list*)
+val only_capitals = List.filter (fn s => Char.isUpper(String.sub(s, 0)));
+
+(* 2. Write a function longest_string1 that takes a string list and returns the
+longest string in the list. If the list is empty, return "". In the case of a
+tie, return the string closest to the beginning of the list. Use foldl,
+String.size, and no recursion (other than the implementation of foldl is
+recursive).*)
+
+(* string list -> string*)
+(* s2 is accumulator so update accumulator only if current element (s1)'s size
+is greater*)
+val longest_string1 = List.foldl (fn (s1,s2) =>
+				     if String.size s1 > String.size s2
+				     then s1
+				     else s2)
+				 "";
+
+(* 3. Write a function longest_string2 that is exactly like longest_string1
+except in the case of ties it returns the string closest to the end of the list.
+Your solution should be almost an exact copy of longest_string1.
+Still use foldl and String.size.*)
+
+(* string list -> string*)
+(* s2 is accumulator so update accumulator only if current element (s1)'s size
+is greater or even equal*)
+val longest_string2 = List.foldl (fn (s1,s2) =>
+				     if String.size s1 >= String.size s2
+				     then s1
+				     else s2)
+				 "";
+
+(* 4. Write functions longest_string_helper, longest_string3, and
+longest_string4 such that:
+• longest_string3 has the same behavior as longest_string1 and longest_string4
+has the same behavior as longest_string2.
+• longest_string_helper has type (int * int -> bool) -> string list -> string
+(notice the currying). This function will look a lot like longest_string1 and
+longest_string2 but is more general because it takes a function as an argument.
+• If longest_string_helper is passed a function that behaves like > (so it
+returns true exactly when its first argument is stricly greater than its
+second), then the function returned has the same behavior as longest_string1.
+• longest_string3 and longest_string4 are defined with val-bindings and partial
+applications of longest_string_helper. *)
+
+(*  (int * int -> bool) -> string list -> string*)
+fun longest_string_helper f xs = List.foldl
+				     (fn (s1,s2) =>
+					 if f(String.size s1, String.size s2)
+					 then s1
+					 else s2)
+				     "" xs;
+(*
+val longest_string3 = longest_string_helper (fn (a,b) => a > b);
+val longest_string4 = longest_string_helper (fn (a,b) => a >= b);
+*)
+
+(* you can obtain the "function" corresponding to an infix operator via op,
+like so:  (op <>) is the function fn (x,y) => x <> y.*)
+
+val longest_string3 = longest_string_helper (op >);
+val longest_string4 = longest_string_helper (op >=);
+
+(* 5. Write a function longest_capitalized that takes a string list and returns
+ the longest string in the list that begins with an uppercase letter, or "" if
+there are no such strings.
+Assume all strings have at least 1 character.
+Use a val-binding and the ML library’s o operator for composing functions.
+Resolve ties like in problem 2.*)
+
+(*string list -> string*)
+(*Get longest string from list containing only capitalized strings*)
+val longest_capitalized = longest_string3 o only_capitals;
+
+(* 6. Write a function rev_string that takes a string and returns the string
+that is the same characters in reverse order.
+Use ML’s o operator, the library function rev for reversing lists, and two
+library functions in the String module. (Browse the module documentation to find
+the most useful functions.)*)
+
+(*string -> string*)
+(*Explode string into a list of chars, reverse list, then implode list of
+reversed chars to make a string again*)
+val rev_string = String.implode o List.rev o String.explode;
+
+exception NoAnswer
+	      
+(* 7. Write a function first_answer of type (’a -> ’b option) -> ’a list -> ’b
+(notice the 2 arguments are curried).
+The first argument should be applied to elements of the second argument in order
+until the first time it returns SOME v for some v and then v is the result of
+the call to first_answer. If the first argument returns NONE for all list
+elements, then first_answer should raise the exception NoAnswer.
+Hints: Sample solution is 5 lines and does nothing fancy.*)
+
+(* (’a -> ’b option) -> ’a list -> ’b *)
+fun first_answer f xs = case xs of
+			    [] => raise NoAnswer
+			  | x::xs' => case f x of
+					  NONE => first_answer f xs'
+					| SOME v => v;
+
+(* 8. Write a function all_answers of type
+(’a -> ’b list option) -> ’a list -> ’b list option
+(notice the 2 arguments are curried).
+The first argument should be applied to elements of the second argument.
+If it returns NONE for any element, then the result for all_answers is NONE.
+Else the calls to the first argument will have produced SOME lst1, SOME lst2,
+... SOME lstn and the result of all_answers is SOME lst where lst is lst1, lst2,
+..., lstn appended together (order doesn’t matter).
+Hints: The sample solution is 8 lines. It uses a helper function with an
+accumulator and uses @. Note all_answers f [] should evaluate to SOME [].*)
+
+(* (’a -> ’b list option) -> ’a list -> ’b list option*)
+fun all_answers f xs =
+    let fun gather_answers (acc,xs) =
+	    case xs of
+		[] => SOME acc
+	      | x::xs' => case f x of
+			      NONE => NONE
+			    | SOME lst => gather_answers(acc@lst,xs')
+    in gather_answers([],xs)
+    end;
+    
+
+(* Type definitions inspired by the type definitions an ML imple- mentation
+   would use to implement pattern matching *)
+datatype pattern = Wildcard
+		 | Variable of string
+		 | UnitP
+		 | ConstP of int
+		 | TupleP of pattern list
+		 | ConstructorP of string * pattern
+
+datatype valu = Const of int
+	      | Unit
+	      | Tuple of valu list
+	      | Constructor of string * valu;
+
+(*
+Given valu v and pattern p, either p matches v or not. If it does, the match
+produces a list of string * valu pairs; order in the list does not matter.
+The rules for matching should be unsurprising:
+• Wildcard matches everything and produces the empty list of bindings.
+• Variable s matches any value v and produces the one-element list holding (s,v)
+• UnitP matches only Unit and produces the empty list of bindings.
+• ConstP 17 matches only Const 17 and produces the empty list of bindings
+(and similarly for other integers).
+• TupleP ps matches a value of the form Tuple vs if ps and vs have the same
+length and for all i, the ith element of ps matches the ith element of vs.
+The list of bindings produced is all the lists from the nested pattern matches
+appended together.
+• ConstructorP(s1,p) matches Constructor(s2,v) if s1 and s2 are the same string
+(you can compare them with =) and p matches v. The list of bindings produced is
+the list from the nested pattern match.
+We call the strings s1 and s2 the constructor name.
+• Nothing else matches.
+
+To help you think about the pattern matching problems, here are some patterns
+in "normal SML speak" and their equivalents in the assignment's setting: 
+• (_, 5) is like TupleP [Wildcard, ConstP 5]
+• SOME (x, 3) is like ConstructorP ("SOME", TupleP [Variable "x", ConstP 3])
+• (s, (t, _)) is like TupleP [Variable "s", TupleP [Variable "t", Wildcard]].
+
+For the purposes of the assignment, an empty Tuple is different from Unit, and
+a Tuple with one element is different from that element by itself.
+So for example, the pattern UnitP should not match the value Tuple []
+
+g's goal is to traverse a pattern structure, applying the functions f1 and f2
+that you give it at key parts. *)
+					    
+fun g f1 f2 p =
+    let 
+	val r = g f1 f2 
+    in
+	case p of
+	    Wildcard          => f1 ()
+	  | Variable x        => f2 x
+	  | TupleP ps         => List.foldl (fn (p,i) => (r p) + i) 0 ps
+	  | ConstructorP(_,p) => r p
+	  | _                 => 0
+    end;
+
+(* 9. (This problem uses the pattern datatype but is not really about
+pattern-matching.)
+A function g has been provided to you.
+
+(a) Use g to define a function count_wildcards that takes a pattern and returns
+how many Wildcard patterns it contains.
+
+(b) Use g to define a function count_wild_and_variable_lengths that takes a
+pattern and returns the number of Wildcard patterns it contains plus the sum of
+the string lengths of all the variables in the variable patterns it contains.
+(Use String.size. We care only about variable names; the constructor names are
+not relevant.)
+
+(c) Use g to define a function count_some_var that takes a string and a pattern
+(as a pair) and returns the number of times the string appears as a variable in
+the pattern.
+We care only about variable names; the constructor names are not relevant.*)
+
+(* unit -> int *)
+val get1 = fn () => 1
+
+(* pattern -> int*)
+(* pass to g helper function get1 and f2 : string -> int*)
+val count_wildcards = g get1 (fn _ => 0);
+
+(* pattern -> int*)
+(* pass to g helper function get1 and library function String.size*)
+val count_wild_and_variable_lengths = g get1 String.size;
+
+(* string * pattern -> int*)
+fun count_some_var (str, p) = g (fn () => 0) (*ignore wildcards*)
+				(*if str appears as Variable s increment count*)
+				(fn s => (if s = str then 1 else 0))
+				p;	
+
+
+(* 10. Write a function check_pat that takes a pattern and returns true if and
+only if all the variables appearing in the pattern are distinct from each other
+(i.e., use different strings).
+The constructor names are not relevant.
+Hints: The sample solution uses two helper functions.
+The first takes a pattern and returns a list of all the strings it uses for
+variables. Using foldl with a function that uses @ is useful in one case.
+The second takes a list of strings and decides if it has repeats.
+List.exists may be useful.
+Sample solution is 15 lines. These are hints: We are not requiring foldl and
+List.exists here, but they make it easier.*)
+
+(* pattern -> bool*)
+fun check_pat p =
+    (* pattern -> string list*)
+    let fun get_variable_strings p =
+	    case p of
+		Variable x  => [x]
+	      | TupleP ps =>
+		List.foldl (fn (p,acc) => acc @ (get_variable_strings p))
+			   [] ps
+	      | ConstructorP(_,p) => get_variable_strings p
+	      | _  => [];
+	
+	(* "a list -> bool *)
+	fun no_duplicates xs =
+	    case xs of
+		[] => true (* empty list hasn't any duplicates*)
+	      (* check that x doesn't occur in xs' and keep checking xs'*)
+	      | x::xs' => not (List.exists (fn s => s = x) xs') andalso
+			  no_duplicates xs'
+    in (no_duplicates o get_variable_strings) p (*function composition*)
+    end;
+
+(*
+11. Write a function match that takes a valu * pattern and returns a
+(string * valu) list option, namely NONE if the pattern does not match and
+SOME lst where lst is the list of bindings if it does.
+Note that if the value matches but the pattern has no patterns of the form
+Variable s, then the result is SOME [].
+Hints: Sample solution has one case expression with 7 branches. The branch for
+tuples uses all_answers and ListPair.zip.
+Sample solution is 13 lines. Remember to look above for the rules for what
+patterns match what values, and what bindings they produce.
+These are hints: We are not requiring all_answers and ListPair.zip here, but
+they make it easier.*)
+
+(* valu * pattern -> (string * valu) list option *)
+(*
+For Const case check also that same integers.
+For Tuple case check first if lists ps and vs have same length and if so,
+use Library function ListPair.zip to get a list of pairs (v,p), then  
+call all_answers to apply current function match recursively to each pair.
+For Constructor case check if same strings and if so call recursively match
+on pair (v,p)	*)
+fun match (v,p) =
+    case (p,v) of
+	(Wildcard,_) => SOME []
+      | (Variable s,v) => SOME [(s,v)]
+      | (UnitP,Unit) => SOME []
+      | (ConstP x,Const y) => if x=y then SOME [] else NONE
+      | (TupleP ps,Tuple vs) =>
+	if length ps = length vs
+	then all_answers match (ListPair.zip(vs,ps))
+	else NONE
+      | (ConstructorP(s1,p'),Constructor(s2,v'))  =>
+	if s1=s2 then match(v',p') else NONE
+      | _ => NONE;
+
+(* 12. Write a function first_match that takes a value and a list of patterns
+and returns a (string * valu) list option, namely NONE if no pattern in the list
+matches or SOME lst where lst is the list of bindings for the first pattern in
+the list that matches.
+Use first_answer and a handle-expression. Hints: Sample solution is 3 lines.*)
+
+(* val -> pattern list -> (string * valu) list option*)
+(* call first_answer with anonymous function which takes a pattern from list
+ and calls match (v,p) till gets first SOME list. Since first_answer produces
+ value not option, need to call it with SOME to get the option.
+ If reaches empty list and exception is raised, it is handled to produce NONE*)
+fun first_match v ps = SOME (first_answer (fn p => match(v,p)) ps)
+		       handle NoAnswer => NONE;
+
+
+
+
+(* (Challenge Problem) Write a function typecheck_patterns that “type-checks”
+a pattern list.
+Types for our made-up pattern language are defined by:
+
+datatype typ = Anything (* any type of value is okay *)
+             | UnitT (* type for Unit *)
+             | IntT (* type for integers *)
+             | TupleT of typ list (* tuple types *)
+             | Datatype of string (* some named datatype *)
+
+typecheck_patterns should have type
+((string * string * typ) list) * (pattern list) -> typ option.
+The first argument contains elements that look like ("foo","bar",IntT), which
+means constructor foo makes a value of type Datatype "bar" given a value of type
+IntT.
+Assume list elements all have different first fields (the constructor name), but
+there are probably elements with the same second field (the datatype name).
+Under the assumptions this list provides, you “type-check” the pattern list to
+see if there exists some typ (call it t) that all the patterns in the list can
+have. If so, return SOME t, else return NONE.
+You must return the “most lenient” type that all the patterns can have.
+For example, given patterns TupleP[Variable("x"),Variable("y")] and
+TupleP[Wildcard,Wildcard], return TupleT[Anything,Anything] even though they
+could both have type TupleT[IntT,IntT].
+As another example, if the only patterns are TupleP[Wildcard,Wildcard] and
+TupleP[Wildcard,TupleP[Wildcard,Wildcard]], you must return
+TupleT[Anything,TupleT[Anything,Anything]].
+*)
+
+datatype typ = Anything
+	     | UnitT
+	     | IntT
+	     | TupleT of typ list
+	     | Datatype of string;
+
+(*  create an algorithm that (like the SML compiler), is capable of inferring
+the type t based on the datatype definitions in first list argument and list of
+patterns in the second argument.
+List of patterns represent every one of the branches in a case expression. If
+all the patterns in the case expression are compatible with some type t then
+the answer is SOME t, otherwise NONE.
+We would not need the first argument except if among the patterns there are
+constructor patterns which do not "tell us" what type they are, e.g. for
+ConstructorP("Red",UnitP) we don't know the type.
+
+e.g. datatype color = Red | Green | Blue is represented by 1st argument
+[("Red", "color", UnitT),
+("Green", "color", UnitT),
+("Blue", "color", UnitT)]
+
+The pattern can be of 4 restrictive (specific) types (UnitP, ConstP, TupleP,
+ConstructorP) and 2 generic types (Wildcard, Variable). If all patterns are
+generic the infered type is Anything, but if one of the patterns is specific,
+then either all the others are generic (since generic types are compatible with
+specific ones) or must be of same restrictive type to infer that specific type,
+otherwise no type matches all patterns
+e.g. we can not infer a common type from patterns UnitP and ConstP.
+
+We iterate over list of patterns, if we find a generic then type till now is
+Anything, if we find a specific, accumulated type becomes that specific one,
+and keep checking. Afterwards we must find only same specific, or generics
+otherwise there is no common type.
+We define an exception to be raised if no match is found.
+We use foldl to traverse list of patterns with accumulator typ initialized to
+Anything(most "lenient").
+For each pair (current pattern, accumulator) we update the type in accumulator
+with helper function update_typ which needs its helper functions pattern_to_typ
+and get_datatype. get_datatype needs its own helper function compatible which
+checks if two types are compatible (same or one is generic at same level)
+We wrap the accumulator type resulted in SOME to get the
+option SOME typ, and handle the exception (in case it was raised during function
+calls) to return NONE*)
+
+(* ((string * string * typ) list) * (pattern list) -> typ option *)
+fun typecheck_patterns (ds,ps) =
+    
+    (*exception to raise if no common typ is found*)
+    let exception NoCommon
+
+	(*typ * typ -> bool*)
+	(*check if 2 types are compatible = are the same or at least one of them
+	  is generic (Anything) at each nested level
+	 e.g. IntT and Anything,
+	 TupleT[UnitT,Anything] and TupleT[Anything,IntT] *)
+	fun compatible(t1,t2) =
+	    t1 = t2 orelse
+	    case (t1,t2) of
+		(Anything,_) => true
+	     |  (_,Anything) => true
+	     | (TupleT t1s, TupleT t2s) =>
+	       List.all compatible (ListPair.zip(t1s,t2s))
+	     | _ => false
+			
+	(* string * typ -> typ *)
+	(*use List.find to look inside list of datatype definitions ds for a
+	 definition triple (constructor name, named datatype, argument typ)
+	 with constructor name con.
+	 If found and given typ is compatible with argument typ,
+	 return 2nd part of definition (named datatype built with that	
+	 constructor name), else raise exception*)		 
+	fun get_datatype (con,ty)  =
+	    case (List.find (fn (cn,tystr,typarg) => cn = con) ds) of
+		NONE => raise NoCommon
+	      | SOME (cn,tystr,typarg) =>
+		if compatible(ty,typarg)
+		then tystr
+		else raise NoCommon
+			   
+	(* pattern -> typ*)
+	(*infer typ from pattern*)
+	fun pattern_to_typ p =
+	    case p of
+		UnitP => UnitT
+	      | ConstP _ => IntT
+	      | TupleP ps' => TupleT (map pattern_to_typ ps')
+	      | ConstructorP (s,p') =>
+		(*get name of custom datatype*)
+		Datatype (get_datatype(s, (pattern_to_typ p')))
+	      | _ => Anything (* cases Wildcard, Variable s*)
+						      
+	(* pattern * typ => typ*)
+	(* compares accumulator typ with current patternin list to either keep
+	   value of accumulator, update accumulator or raise exception*)
+	fun update_typ(p,acc) =
+	    case (acc,p) of
+		(Anything,UnitP) => UnitT (*more specific*)
+	      | (Anything,ConstP _) => IntT (*more specific*)			
+	      (* more specific TupleT with list of types infered from each
+		pattern of the list with map and pattern_to_typ*)
+	      | (Anything,TupleP ps') =>
+		TupleT (map pattern_to_typ ps')
+	      (* more specific Datatype of custom datatype retrieved with
+		 datatypes_to_typ to which we pass constructor name from pattern
+	       *)
+	      | (Anything,ConstructorP (cn,p')) =>
+		Datatype (get_datatype(cn,(pattern_to_typ p')))
+	      | (Anything,_) => Anything (*cases Wildcard, Variable _*)
+				    
+	      | (UnitT, UnitP) => UnitT (*keep*)
+	      | (UnitT,Wildcard) => UnitT (*compatible with specific, keep*)
+	      | (UnitT,Variable _) => UnitT (*keep*)
+	      | (UnitT,_) => raise NoCommon (*other specific*)
+				   
+	      | (IntT,ConstP _) => IntT(*keep*)
+ 	      | (IntT,Wildcard) => IntT (*keep*)
+	      | (IntT,Variable _) => IntT (*keep*)
+	      | (IntT,_) => raise NoCommon (*other specific*)
+				  
+	      (*check same lengths of types and patterns.
+		If not raise exception.
+		If so keep type TupleT, but might need to update types in list.
+		Use ListPair.zip to gather pairs pattern * typ then map each
+		pair with current function update_typ to an updated typ*)
+	      | (TupleT ts, TupleP ps) => if length ts = length ps
+					  then TupleT
+						   (map update_typ
+							(ListPair.zip(ps,ts)))
+					  else raise NoCommon
+	      | (TupleT ts,Wildcard) => TupleT ts (*keep*)
+	      | (TupleT ts,Variable _) => TupleT ts (*keep*)
+	      | (TupleT _,_) => raise NoCommon (*other specific*)
+
+	      (*get custom datatype built with constructor name in pattern,
+	       if same as accumulator, then keep, else raise exception*)
+	      | (Datatype t, ConstructorP (cn,p')) =>
+		if get_datatype(cn,(pattern_to_typ p')) = t
+		then Datatype t
+		else raise NoCommon
+	      | (Datatype t,Wildcard) => Datatype t (*keep*)
+	      | (Datatype t,Variable _) => Datatype t (*keep*)
+	      | (Datatype t,_) => raise NoCommon (*other specific*)
+						     
+    in (SOME (foldl update_typ Anything ps))
+       handle NoCommon => NONE
+    end 
+
+		 

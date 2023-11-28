@@ -1,0 +1,87 @@
+
+use "extra.sml";
+
+val test1 = pass_or_fail {id = 3, grade = SOME 75} = pass
+val test1a = pass_or_fail {id = 3, grade = SOME 90} = pass
+val test1b = pass_or_fail {id = 3, grade = SOME 74} = fail
+val test1c = pass_or_fail {id = 3, grade = NONE} = fail
+
+val test2 = has_passed {id = 3, grade = SOME 75} = true
+val test2a = has_passed {id = 3, grade = SOME 90} = true
+val test2b = has_passed {id = 3, grade = SOME 74} = false
+val test2c = has_passed {id = 3, grade = NONE} = false
+
+val test3 = number_passed [ {id = 3, grade = SOME 75},
+			    {id = 3, grade = SOME 90},
+			    {id = 3, grade = SOME 74},
+			    {id = 3, grade = NONE}] = 2
+val test3a = number_passed [] = 0
+
+				    
+val test4 = number_misgraded [(pass,{id = 3, grade = SOME 75}),
+			      (fail,{id = 3, grade = SOME 90}),
+			      (fail,{id = 3, grade = SOME 74}),
+			      (pass,{id = 3, grade = NONE})] = 2
+val test4a = number_misgraded [(pass,{id = 3, grade = SOME 75}),
+			       (fail,{id = 3, grade = SOME 74})] = 0
+val test4b = number_misgraded [] = 0
+
+val t1 = node {value = 1, left = leaf,
+	       right = node {value = 2, left = leaf, right = leaf}};
+val t2 = node {value = 1, left = t1,
+	       right = node {value = 3, left = leaf, right = leaf}};
+val t3 = node {value = 1, left = t1, right = t2};
+
+val test5 = tree_height leaf = 0
+val test5a = tree_height t1 = 2
+val test5b = tree_height t2 = 3
+val test5c = tree_height t3 = 4
+
+val test6 = sum_tree leaf = 0
+val test6a = sum_tree t1 = 3
+val test6b = sum_tree t2 = 7
+val test6c = sum_tree t3 = 11
+
+
+val t4 = node {value = leave_me_alone, left = leaf,
+	       right = node {value = prune_me, left = leaf, right = leaf}};
+val t5 = node {value = prune_me , left = t4,
+	       right = node {value = leave_me_alone, left = leaf,
+			     right = leaf}};
+val t6 = node {value = leave_me_alone, left = t4, right = t5};
+
+val test7 = gardener leaf = leaf;
+val test7a = gardener t4 =  node {value = leave_me_alone, left = leaf,
+				 right = leaf}
+val test7b = gardener t5 = leaf;
+val test7c = gardener t6 = node {value = leave_me_alone, left = gardener t4,
+				 right = leaf};
+
+val test8 = (last1 [] handle List.Empty => 0) = 0
+val test8a = last1 [1] = 1;
+val test8b = last1 [1,2,3,0] = 0;
+
+val test9 = (take1 ([],1) handle General.Subscript => []) = []
+val test9a = take1 ([],0) = []
+val test9b = take1 (["a","b","c"],2) = ["a", "b"]
+val test9c = take1 ([1],0) = []
+val test9d = take1 ([1,2,3],3) = [1,2,3]
+
+val test10 = (drop1 ([],1) handle General.Subscript => []) = []
+val test10a = drop1 ([],0) = []
+val test10b = drop1 (["a","b","c"],2) = ["c"]
+val test10c = drop1 ([1],0) = [1]
+val test10d = drop1 ([1,2,3],3) = []
+
+val test11 = concat1 [] = []
+val test11a = concat1 [[],["a","b"]] = ["a","b"]
+val test11b = concat1 [[1,2],[3,4,5],[6,7]] = [1,2,3,4,5,6,7]
+
+val test12 = getOpt1 (NONE, "a") = "a"
+val test12a = getOpt1 (SOME 1, 2) = 1
+
+val test13 = join1 NONE = NONE
+val test13a = join1 (SOME NONE) = NONE
+val test13b = join1 (SOME (SOME 3)) = SOME 3
+
+					   

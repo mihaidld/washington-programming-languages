@@ -1,0 +1,96 @@
+(* Programming Languages, Dan Grossman *)
+(* Section 3: Another Closure Idiom: Currying *)
+
+(* old way to get the effect of multiple arguments
+Since every function in ML takes 1 argument: pattern matching on tuple of 3 args
+(x,y,z) *)
+(*takes 3 args conceptually (1 tuple arg actually) and checks if they are sorted
+ *)
+fun sorted3_tupled (x,y,z) = z >= y andalso y >= x
+
+val t1 = sorted3_tupled (7,9,11)
+
+(* new way:
+Currying =  take one argument and return a function that takes
+the next argument and can still use the 1st argument because it will be in
+its environment.
+Name after logician Haskel Curry*)
+
+(* function takes an x and returns another function (with x in its environment)
+   that takes an argument y and returns another function (with x and y in its
+   environment) that takes an argument z and when you call it checks if
+   x,y and z are sorted *)
+val sorted3 = fn x => fn y => fn z => z >= y andalso y >= x
+
+(* alternately: fun sorted3 x = fn y => fn z => z >= y andalso y >= x *)
+							      
+(* Calling sorted3 with 7 gives us back a function closure:
+ - code: fn y => fn z => z >= y andalso y >= x
+ - with x mapped to 7 in its environment
+
+ We than call that closure function with 9 and get back function closure:
+ - code: fn z => z >= y andalso y >= x
+ - with x mapped to 7 and y to 9 in its environment
+
+ We than call that closure function with 11 and get back function body:
+ - code: z >= y andalso y >= x
+ - with x mapped to 7, y to 9 and z to 11 in its environment
+ *)
+val t2 = ((sorted3 7) 9) 11 
+
+(* syntactic sugar for calling curried functions: optional parenthesis
+In general if we don't have parenthesis, just spaces between arguments
+e1 e2 e3 e4 ..., means (((e1 e2) e3) e4). The parenthesis organize from the left
+rightwards: call e1 with e2, get back a function that we call with e3, get back
+a function that we call with e4 ...
+
+ *)
+val t3 = sorted3 7 9 11  (* same as ((sorted3 7) 9) 11 *)
+
+(*
+If the function is defined taking a tuple, need to call it with a tuple (x,y,z),
+not with spaces between arguments x y z
+
+If the function is curried and defined with arguments with spaces,
+we can call it with arguments one after the other x y z (if we call it only with
+x y we get back a function, not the bool), not with a tuple (x,y,z) *)
+
+(* syntactic sugar for defining curried functions with function binding:
+space between arguments, no need to write the anonymous functions
+
+fun f pattern1 pattern2 pattern3 ... = expression
+means it's a curried function:
+fun f pattern1 = fn pattern2 => fn pattern3 => ... => expression
+
+The general form for a curried function is :
+fun [function name] [e1 e2 e3..]= [function body] where 
+e1,e2,e3... are arguments to the curried function *)
+		 
+fun sorted3_nicer x y z = z >= y andalso y >= x
+
+(* more calls that work: *)
+val t4 = sorted3_nicer 7 9 11
+val t5 = ((sorted3_nicer 7) 9) 11
+
+(* calls that do not work: cannot mix tupling and currying *)
+(*val wrong1 = ((sorted3_tupled 7) 9) 11 : type-check error since 7 is not
+expected triple int *)
+(*val wrong2 = sorted3_tupled 7 9 11*)
+(*val wrong3 = sorted3 (7,9,11) : type-check error since (7,9,11) is not
+ expected int*)
+(*val wrong4 = sorted3_nicer (7,9,11)*)
+
+(* a more useful example *)
+fun fold f acc xs = (* means fun fold f = fn acc => fn xs => *)
+  case xs of
+      []     => acc
+    (*need the parenthesis to know where args end, separated by spaces*)
+    | x::xs' => fold f (f(acc,x)) xs' 
+(* Note: foldl in the ML standard library is very similar, but 
+   the two arguments for the function f are in the opposite order (x,acc). 
+   The order is, naturally, a matter of taste.
+*)
+
+(* a call to curried fold: will improve this call next *)
+fun sum xs = fold (fn (x,y) => x+y) 0 xs
+

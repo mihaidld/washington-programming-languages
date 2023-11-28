@@ -1,0 +1,51 @@
+(* Programming Languages, Dan Grossman *)
+(* Section 2: Useful Datatypes *)
+
+(*Enumerations enum that don't carry other data*)
+datatype suit = Club | Diamond | Heart | Spade
+
+(* Enums, including carrying other data (Num of int)
+ might need to specify ints in [2, 10]*)
+datatype rank = Jack | Queen | King | Ace | Num of int
+
+(*identify a student either by student number (an int) or
+ the name: first and last name with optional middle name (strings)*)					       
+datatype id = StudentNum of int 
+            | Name of string * (string option) * string
+
+(*if every person has a name and maybe student number use each-of instead of
+ one-of with a record
+{ student_num : int option,
+first :	       	string,
+middle :       	string option,
+last :	       	string }
+ *)
+
+(*Expression trees to define a little language of arithmetic expressions*)
+
+(*An expression is one of the following things:
+ - either a constant which holds an int*)
+datatype exp = Constant of int 
+             | Negate of exp 
+             | Add of exp * exp
+             | Multiply of exp * exp
+
+fun eval e =
+    case e of
+        Constant i => i
+      | Negate e2  => ~ (eval e2)
+      | Add(e1,e2) => (eval e1) + (eval e2)
+      | Multiply(e1,e2) => (eval e1) * (eval e2)
+
+fun number_of_adds e =
+    case e of
+        Constant i      => 0
+      | Negate e2       => number_of_adds e2
+      | Add(e1,e2)      => 1 + number_of_adds e1 + number_of_adds e2
+      | Multiply(e1,e2) => number_of_adds e1 + number_of_adds e2
+
+val example_exp = Add (Constant 19, Negate (Constant 4))
+
+val example_ans = eval example_exp
+
+val example_addcount = number_of_adds (Multiply(example_exp,example_exp))

@@ -1,0 +1,102 @@
+(* Programming Languages, Dan Grossman *)
+(* Section 4: A Module Example *)
+
+(* implement Abstract Data Type (a module that exports sone newtype of data
+and operations on it) for Rational numbers supporting add and toString*)
+
+(* will assign different signatures to this module in later segments *)
+
+structure Rational1 = 
+struct
+
+(* Implementation details will keep a couple of invariants (so it makes sure
+these promises (assumptions) are kept/maintained/enforced: 
+Invariant 1: all denominators > 0
+Invariant 2: rationals kept in reduced form (e.g. instead of 9/6 we store 3/2
+and convert to string "3/2", instead of 8/2 we get "4"*)
+
+(* rational number can either be whole (int) or fraction of 2 ints: numerator
+ and denominator*)
+  datatype rational = Whole of int | Frac of int*int
+  exception BadFrac (*for trying to make a rational with denominator 0*)
+
+(* gcd and reduce help keep fractions reduced, 
+   but clients need not know about them *)
+  (* they _assume_ their inputs are not negative *)
+
+  (*get greatest common divisor of 2 positive ints*)
+  (*algorithm from Ancient Greece with recursive calls with
+    (smaller, larger-smaller) till we get base case when we have same args.
+    for m>n, x = d * m, y = d * n -> gcd(x,y) = gcd(y,x) = gcd(d*n,d*(m-n)).
+    We keep calling gcd till n = m-n so when we call gcd(d*n,d*(m-n)) we return
+    n    
+   *)
+  (*int*int -> int*)
+  fun gcd (x,y) =
+       if x=y (*if same, then gcd is one of them*)
+       then x
+       else if x < y
+       (*if first is smaller, recursive call with smaller and difference*)
+       then gcd(x,y-x)
+       (*if second is smaller, recursive call switching them to always
+	 have first one smaller*)   
+       else gcd(y,x)
+
+  (*returns given rational in reduced form*)
+  (*rational -> rational*)
+   fun reduce r =
+       case r of
+	   Whole _ => r (*already reduced*)
+	 | Frac(x,y) => 
+	   if x=0 (*numerator is 0*)
+ 	   then Whole 0
+	   (*get greatest common denominator which expects 2
+	     positive ints, denominator is always positive so we need to make
+	     sure that numerator is also with absolute value*)
+	   else let val d = gcd(abs x,y) in (* using invariant 1 *)
+		    if d=y  (*if gcd is denominator*)
+			     (*whole number from division e.g.8/2->4*)
+		    then Whole(x div d)
+			      (*reduce both numerator and denominator by gcd*)
+		    else Frac(x div d, y div d) 
+		end
+
+   (*Public functions for clients to use*)
+   (* when making a frac (with numerator x and denominator y, we ban zero
+      denominators and reduce rational*)
+   fun make_frac (x,y) =
+       if y = 0
+       then raise BadFrac
+       else if y < 0
+		       (*switch both signs to make denominator positive*)
+       then reduce(Frac(~x,~y)) 
+       else reduce(Frac(x,y))
+
+(* using math properties, both invariants hold of the result
+   assuming they hold of the arguments
+ We assume args are in reduced form and result will be also reduced*)
+   fun add (r1,r2) = 
+       case (r1,r2) of
+	   (Whole(i),Whole(j))   => Whole(i+j)
+	 (*add whole and fraction in reduced form, the result also is reduced*)
+	 | (Whole(i),Frac(j,k))  => Frac(j+k*i,k)
+	 | (Frac(j,k),Whole(i))  => Frac(j+k*i,k)
+	 (*compute new fraction, then reduce it*)
+	 | (Frac(a,b),Frac(c,d)) => reduce (Frac(a*d + b*c, b*d))
+
+(* given invariant, prints in reduced form *)
+   fun toString r =
+       case r of
+	   Whole i => Int.toString i
+	 | Frac(a,b) => (Int.toString a) ^ "/" ^ (Int.toString b)
+
+end;
+
+(*Specifications of the library = properties = externally visible guarantees
+ = what the library writer is promising to any client:
+- disallow 0 denominator
+- return strings in reduced form ("4" not "4/1", "3/2" not "9/6")
+- it will not create an infinite loop or raise exception if given 2 ints with
+denominator not 0
+
+ How the library is implemented using invariants*)

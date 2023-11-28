@@ -1,0 +1,88 @@
+(* Programming Languages, Dan Grossman *)
+(* Section 2: Polymorphic Datatypes *)
+
+(* Options and lists are datatype bindings.
+They are polymorphic type constructors = they take type parameters to produce
+types: e.g. int list, string list, int list list are types, but not list
+
+Functions might or might not be polymorphic*)
+
+(* type is int list -> int *)
+(* not polymorphic, only for ints*)
+fun sum_list xs =
+    case xs of
+        [] => 0
+      | x::xs' => x + sum_list xs'
+
+(* type is 'a list * 'a list -> 'a list *)
+(* polymorphic, elements of the list can be of any type*)
+fun append (xs,ys) =
+    case xs of
+        [] => ys
+      | x::xs' => x :: append(xs',ys)
+
+
+(* It's possible to have one or more type parameters (e.g. t1, (t1,t2)) between
+keyword datatype and new type name mytype1:
+
+datatype t1 mytype1 = Constructor1 | Constructor2 of t1
+datatype (t1,t2) mytype2 = Constructor3 | Constructor4 of (t1*t2)
+
+the type parameters can be used in types of data that the constructors carry
+ *)
+	
+			     
+(* this really is /exactly/ how options are defined 
+
+option is not a type, just something given a type alpha (any), produces a type.
+SOME carries 'a whatever type this particular kind of option carries as its
+parameter *)		     
+datatype 'a myoption = NONE | SOME of 'a
+
+(* similarly, here are polymorphic lists but without special syntax ([], ::)
+ 1 type param alpha ('a) and the Cons case carries 2 pieces of data : an alpha
+ and another alpha mylist
+ mylist is never a type, the new type defined is 'a mylist *)
+
+datatype 'a mylist = Empty | Cons of 'a * 'a mylist
+
+(* a fancier example for binary trees where internal nodes have data of
+   any one type ('a) and leaves have data of another possibly-different type
+('b). 'a and 'b can be the same or different
+ We have 2 constructors:
+ - Node (for internal nodes) always carry something of type alpha ('a) and then
+2 other alpha beta trees
+ - Leaf always carries something of type beta ('b)*)
+
+datatype ('a,'b) tree = Node of 'a * ('a,'b) tree * ('a,'b) tree
+		      | Leaf of 'b
+
+(*Functions will be polymorphic or not depending on how data is used*)
+				    
+(* Type checker will figure out that type is (int,int) tree -> int
+ because it adds up data carried by nodes and leaves, both have to have same
+ type int (or real?)*)
+(*Not polymorphic only int, not any 'a or 'b*)
+fun sum_tree tr =
+    case tr of
+	Leaf i => i
+      (*add i (data carried by node) to recursively summing left and right
+	children*)
+      | Node(i,lft,rgt) => i + sum_tree lft + sum_tree rgt 
+
+(*because it doesn't care about what data nodes carry (doesn't use i in Node
+case), type in Node can be anything ('a), while beta is int (or real?)
+so type checker infers type is ('a,int) tree -> int *)
+fun sum_leaves tr =
+    case tr of
+	Leaf i => i
+      | Node(i,lft,rgt) => sum_leaves lft + sum_leaves rgt
+
+(* we are not using anything of the internal data so nodes can carry any alpha
+and leaves any beta
+type is ('a,'b) tree -> int *)
+(*polymorphic, any 'a and 'b*)
+fun num_leaves tr =
+    case tr of
+	Leaf i => 1
+     | Node(i,lft,rgt) => num_leaves lft + num_leaves rgt

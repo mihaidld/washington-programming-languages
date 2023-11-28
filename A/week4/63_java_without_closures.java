@@ -1,0 +1,134 @@
+// Programming Languages, Dan Grossman
+// Section 3: Optional: Closure Idioms Without Closures in Java
+
+// Note: This code compiles but has not been carefully tested. 
+//       Bug reports welcome.
+
+/*One method interfaces to fake closures because a function is like an object
+  with 1 method. We create then objects that implement this interface and act
+  like functions from argument type A to result type B.
+  We have to put in these objects the private fields.
+  Different instances can have different fields (possibily different types) like
+  closures can have same code (function body), but different environments
+  (possibily different types)
+  Use generic types A (alpha) and B (beta)*/
+
+// Function from A to B
+interface Func<B,A> {
+    B m(A x);//method m takes x of type A and returns type B
+}
+// Predicate from A to bool
+interface Pred<A> {
+    boolean m(A x);//method m takes x of type A and returns boolean
+}
+
+/*Linked list library: generic list parameterized by the type of the elements
+ in the list T, with fields for head and tail, a constructor that initializes
+with head for x and tail for xs. This constructor doesn't work for empty list
+so we assume null for empty list (special constant in Java) so empty list
+is not an object instance of class List, just null*/
+class List<T> {
+    T       head; //of type T
+    List<T> tail;// of type LIST of T's
+    List(T x, List<T> xs) {
+	head = x;
+	tail = xs;
+    }
+
+    /* Higher order functions with static methods and use generic interfaces
+     for "function arguments" for map (Func) and filter (Pred)
+     
+    The methods are recursive which is not efficient in Java,
+    a more efficient way in Java would be a messy while loop where you keep a
+    pointer to the previous element and mutate it
+    (try it if you do not believe it is messy)
+
+    The advantage of a static method is it allows xs to be null (if null then
+    else ..).
+    
+    It could have been implemented with instance methods which don't need
+    argument of List, but use this (the instance) of type T, but clients could
+    not call them for empty lists (can't call a method on null) so clients need
+    special cases for empty lists
+    e.g.
+    <B> List<B> map(Func<B,T>) f {...}
+    int length() {...} 
+    
+    A more OO way would be a subclass for empty lists where we implement map to
+    return Empty, filter Empty and length 0, and another subclass
+    for non-empty lists with normal implementation then instance methods would
+    work */
+
+    /*polymorphic, takes A and B, the result type is a List of B's
+    argument xs is List of A's, the other arg is a Func from A to B*/
+    static <A,B> List<B> map(Func<B,A> f, List<A> xs) {
+	if(xs==null) // Empty list
+	    return null;
+	/*return new List of B's by calling the constructor with head resulted
+	 from calling f's (of type Func) method m with xs.head of type A, then
+	recursively with same f and xs.tail*/
+	return new List<B>(f.m(xs.head), map(f,xs.tail));
+    }
+
+    /*polymorphic takes List of A's, returns List of A's, arg is a Pred from
+     A to bool*/
+    static <A> List<A> filter(Pred<A> f, List<A> xs) {
+	if(xs==null) //Empty list
+	    return null;
+	/*if calling object f's m method with xs.head returns true then we want
+	 xs.head in our result so build new List with that on top of recursion*/
+	if(f.m(xs.head))
+	    return new List<A>(xs.head, filter(f,xs.tail));
+	return filter(f,xs.tail);
+    }
+
+    // * again recursion would be more elegant but less efficient
+    // * again an instance method would be more common, but then
+    //   all clients have to special-case null
+
+    /*take a List of A's, return an int, walk along in while loop by
+      incrementing ans till reach null*/
+    static <A> int length(List<A> xs) {
+	int ans = 0;
+	while(xs != null) {
+	    ++ans;
+	    xs = xs.tail;
+	}
+	return ans;
+    }
+}
+
+class ExampleClients {
+    /*static method doubleAll which takes a List of ints and returns a List
+     of ints. It calls List.map (the method on the class, not on the instance)
+    with the xs and an object that is acting like a closure: we use here
+    an anonymous inner class:
+    (new Func<Integer,Integer>() {public Integer m(Integer x) { return x * 2;}})
+    which is syntactic sugar for defining a class that implements an interface
+    Func, then provide an implementation of the appropriate method m.
+    Make a new object that implements Func interface for argument integer and
+    integer and let its method m take in an integer x and retuen x*2 
+    */
+    static List<Integer> doubleAll(List<Integer> xs) {
+	return List.map((new Func<Integer,Integer>() { 
+		             public Integer m(Integer x) { return x * 2; } 
+                         }),
+			xs);
+    }
+
+    /*we use the n inside definition of method m (x==n) that is in scope only
+      because n is declared final, Java wouldn't let us if n can be updated.
+      To avoid putting final for n, instead of anonymous inner classes we
+      would need to:
+      - define a class C that implements Pred<A>,
+      - use fields to hold any private data (like field n),
+      - make an object of class C, passing private data to constructor
+      - pass the object to map*/
+    static int countNs(List<Integer> xs, final int n) {
+	return List.length(List.filter(
+		   (new Pred<Integer>() { 
+		       public boolean m(Integer x) { return x==n; } 
+		   }),
+		   xs));
+    }
+}
