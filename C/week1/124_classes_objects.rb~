@@ -1,0 +1,100 @@
+# Programming Languages, Dan Grossman
+# Section 7: Classes and Objects
+
+# Syntax class definition
+# class Name
+#   def method_name1 method_args1
+#     expression1
+#   end
+#   ...
+# end
+
+# Name.new creates a new object whose class is Name
+# e.m evaluates e to an object and then calls its m method =
+# sends the m message to the object
+# can write also e.m(), e.m(e1,...,en)
+
+
+class A
+  def m1  #method without args
+    34
+  end
+
+  def m2 (x,y) #method with 2 args
+
+    #Variables:methods can use local variables
+    #variable names start with letters
+    #can be put anywhere in method body and their scope is entire body
+    #no declaring them, just assign them anywhere in method body 
+    z = 7
+
+    #variables are mutable, will refer to a another object
+    z += 5
+    
+    if x > y 
+      false   #needs then clause on separate line
+    else
+      x + y * z
+    end #ends if statement
+    
+  end #ends method definition
+
+end  #ends class definition 
+
+#Top level variables
+#contents of a variable is reference to some object
+def s
+  A.new
+end
+
+class B
+  def m1
+    4
+  end
+
+  def m3 x
+    #call given arg object's method abs and current object's
+    #(since we are executing method m3) m1
+    
+    #call another method on same object with self.m1()
+    #or syntactic sugar just m1() = implicitely self
+    
+    #method returns its last expression, there is also explicit return statement
+    x.abs * 2 + self.m1 
+  end
+end
+
+# returning self is convenient for "stringing method calls"
+class C
+  def m1
+    print "hi "
+    #next expression on next line is to return the whole object
+    self
+  end
+  def m2
+    print "bye "
+    self
+  end
+  def m3
+    print "\n"
+    self
+  end
+
+  def m4
+    print "yes";self #separate statements on same line with ;
+  end
+end
+
+# example uses (can type into irb)
+# here in a multiline comment, which is not well-known
+=begin
+a = A.new
+thirty_four = a.m1
+b = B.new
+four = b.m1
+forty_seven = B.new.m3 -17
+thirty_one = a.m2(3,four)
+
+c = C.new
+c.m1.m2.m3.m1.m1.m3
+=end

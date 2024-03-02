@@ -1,0 +1,125 @@
+# Programming Languages, Dan Grossman
+# Section 7: Overriding and Dynamic Dispatch
+
+class Point
+  attr_accessor :x, :y
+
+  def initialize(x,y)
+    @x = x
+    @y = y
+  end
+  def distFromOrigin
+    Math.sqrt(@x * @x  + @y * @y) # uses instance variables directly
+  end
+  def distFromOrigin2
+    Math.sqrt(x * x + y * y) # uses getter methods
+  end
+
+end
+
+# design question: "Is a 3D-point a 2D-point?" 
+# [arguably poor style here, especially in statically typed OOP languages]
+
+# inherit methods x,y,x=,y=, override initialize,distFromOrigin and
+# distFromOrigin2 and add methods z,z=
+class ThreeDPoint < Point
+  attr_accessor :z
+
+  def initialize(x,y,z) #override initialize of superclass
+    super(x,y)
+    @z = z
+  end
+  def distFromOrigin #override distFromOrigin
+    d = super #get distance from x,y coordinates
+    Math.sqrt(d * d + @z * @z)
+  end
+  def distFromOrigin2
+    d = super
+    Math.sqrt(d * d + z * z)
+  end
+end
+
+# Polar point in 2D is not represented by x,y coordinates, but by a radius r
+# distance from origin) and angle Theta in radians from point to positive x axis
+
+#subclass overrides almost everything in superclass
+#distFromOrigin2 inherited from parent class and not overriden uses in its body
+#methods x and y (self.x and self.y, self being instance of subclass) which were
+#overriden in subclass, here still works. Since inherited method calls in its
+#body overriden methods it could have behaved differently from superclass
+class PolarPoint < Point
+  # Interesting: by not calling super constructor, no x and y instance vars
+  # In Java/C#/Smalltalk would just have unused x and y fields since they are
+  # not initialized, but in Ruby instances of PolarPoint don't have @x and @y
+  def initialize(r,theta) #use different instance variables
+    @r = r
+    @theta = theta
+  end
+
+  #need to override x,y,x=,y=
+
+  # to the client it looks like a getter method, though it's computing from r
+  # and theta
+  def x 
+    @r * Math.cos(@theta)
+  end
+  def y
+    @r * Math.sin(@theta)
+  end
+  def x= a
+    b = y # avoids multiple calls to y method by storing in local var
+    @theta = Math.atan2(b, a)
+    @r = Math.sqrt(a*a + b*b)
+    self
+  end
+  def y= b
+    a = x # avoid multiple calls to x method
+    @theta = Math.atan2(b, a)
+    @r = Math.sqrt(a*a + b*b)
+    self
+  end
+  def distFromOrigin # must override since inherited method does wrong thing
+    @r
+  end
+  # inherited distFromOrigin2 already works (because uses methods x,y updated)!!
+end
+
+# the key example
+pp = PolarPoint.new(4,Math::PI/4)
+pp.x #sq rt of 8
+pp.y #sq rt of 8
+pp.distFromOrigin2
+
+# Dynamic dispatch (= late binding / virtual methods)
+# when we call self.m2() in the body of m1 defined in class C, can resolve to a
+# method m2 defined in subclass of C because m2 was overriden in subclass
+# unique characteristic of OOP
+# need to define semantics of method lookup procedure
+
+# Look up variables 
+# In ML, Racket and Ruby we look up variables in the environment
+
+# Self
+# In Ruby instance variables, class variables, methods we look them in terms of
+# self ("current" object)
+# There is always some object bound to self
+
+# Look up instance variable @x used in a method using object bound to self
+#(like the field of a record in ML), if we find it we return it. else nil
+
+# Look up class variable @@x used in a method using object bound to self.class
+#(like the field of a record in ML), if we find it we return it. else nil
+
+# Look up methods
+# Steps of evaluation method call e0.m(e1,...,en)
+# - eager evaluation of e0,e1,...,en to objects obj0,obj1,...,objn
+# - obj0 is receiver of the method. Let C be the class of obj0 (every object has
+# a class) 
+# - we will use C to find code to execute: if C defined method m, we pick that
+# method, else recur on C's superclass to check if defined method m, all the way
+# up to class hierarchy of Object and BasicObject. The first m we find, that's
+# the code we call. If n not found we call method_missing on C, if not defined
+# recur till find it defined on Object which raises errror
+# - evaluate body of method m in an environment where:
+#      - formal arguments are bound to objects obj1,...,objn and
+#      - self is bound to obj0. This implements dynamic dispatch

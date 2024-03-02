@@ -1,0 +1,45 @@
+=begin
+
+Guess The Word
+
+We'll toy a bit with a simple word guessing game (known under the rather morbid
+name of "Hangman"). Our implementation has a simple text-based interface, and
+doesn't aim to be fully playable -- it doesn't make much effort to hide the
+secret word or phrase from the player, for example.
+
+Save the provided code implementing a particularly half-baked version of the
+game in a file named guessword-provided.rb, put the template solution file
+nearby (current file), inspect the code, run the game, and play a little. Use the template solution file to implement the changes described below. Note that you should only change the template file.
+
+Change 1: Ignore Punctuation
+The first player may enter a phrase or sentence instead of a single word. The current implementation doesn't treat spaces or punctuation marks in any special way. Change the game so that punctuation marks and spaces are not hidden from the second player. You should also reject non-letter characters as guesses.
+
+Change 2: Case Insensitivity
+The game currently treats lowercase and uppercase letters as being different. Change that so that entering either a lowercase or an uppercase letter as a guess would uncover all the corresponding letters in the secret word or phrase, regardless of their case.
+
+NOTE: You shouldn't just convert both the secret word and the guesses to lower or upper case -- that's not neat.
+
+Change 3: Forgive Repeated Guesses
+Player may try to guess the same letter absent from the secret phrase multiple times. The current implementation will consider all such guesses to be incorrect, and reduce the number of remaining attempts accordingly. Change the game so that repeated guesses are rejected as invalid instead.
+
+EXAMPLE: After implementing all the changes described above, a sample game session could look as follows:
+=end
+
+## Solution template for Guess The Word practice problem (section 7)
+
+require_relative './guessword-provided'
+
+class ExtendedGuessTheWordGame < GuessTheWordGame
+  ## YOUR CODE HERE
+end
+
+class ExtendedSecretWord < SecretWord
+  ## YOUR CODE HERE
+end
+
+## Change to `false` to run the original game
+if true
+  ExtendedGuessTheWordGame.new(ExtendedSecretWord).play
+else
+  GuessTheWordGame.new(SecretWord).play
+end

@@ -1,0 +1,50 @@
+# Programming Languages, Dan Grossman
+# Section 7: Passing Blocks
+
+# Blocks are almost closures
+# - an easy way to pass anonymous functions to methods,
+# - can take 0 or more arguments,
+# - use lexical scope: block body uses environment where block was defined
+
+#pass a block that prints "hi" as an argument to method times of class Integer
+3.times { puts "hello" } 
+
+[4,6,8].each { puts "hi" }
+
+i = 7
+#block takes an argument x, evaluates i in the env where block defined
+[4,6,8].each {|x| if i > x then puts (x+1) end }
+
+# can pass 0 or 1 block with any message (method call).
+# It is separate from normal arguments which are passed in parenthesis, after
+# then we could pass a block or not
+# Syntax: {e} for block witout arguments
+# with arguments passed by the callee: {|x| e}, {|x,y| e}
+# can replace { and } with do and end, preferred style for multiline blocks
+
+# Explicite loops rarely used, replaced with methods in standard library that
+# expect blocks = higher order functionl and functional programming
+
+ x#Loop for elements in range 0 to 5, print it if even
+(0..5).each {|j| if j.even? then puts j end }
+
+a = Array.new(5) {|i| 4*(i+1)}
+a.each { puts "hi" }
+a.each {|x| puts (x * 2) }
+a.map  {|x| x * 2 } #synonym: collect
+a.any? {|x| x > 7 } 
+a.all? {|x| x > 7 } 
+a.all? # implicit are elements "true" (i.e., neither false nor nil)
+a.inject(0) {|acc,elt| acc+elt }
+a.select {|x| x > 7 } #non-synonym: filter
+
+def t i
+  (0..i).each do |j|
+    print "  " * j
+    (j..i).each {|k| print k; print " "}
+    print "\n"
+  end
+end
+
+t 9
+

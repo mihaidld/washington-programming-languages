@@ -1,0 +1,73 @@
+# Programming Languages, Dan Grossman
+# Section 7: Class Definitions are Dynamic
+
+# Ruby is dynamic: everything can change while program is running
+# even a class can have its definition change while program running
+# we have a class definition with some methods inside, then we would like to
+# add a new method to same class
+
+#to change class definition, we make a class definition with same name and
+#add more methods to it or change contents of methods
+#once the class has changed even object instances defined before the change,
+#can see the changes and, after class change, can use the new methods
+#we change the behaviour of objects that already exist
+
+require_relative './127_example' # similar to ML's use
+
+# above line defines the MyRational class, but now we can change it
+
+#change class MyRational to add method double
+class MyRational
+  def double
+     self + self #call + method on self with self again
+   end
+end
+
+#change class Integer to add method double
+class Integer
+  def double
+    self + self
+  end
+end
+
+#change class Object by adding method m to it
+def m
+  42
+end
+
+#change class Object by updating method m to it
+class Object
+  def m 
+    43
+  end
+end
+
+# this changes definition for method +, to always return 42
+# class Integer
+#   def + x
+#     42
+#   end
+# end
+
+# Duck typing
+# = making method calls on arguments rather than assuming/testing the class of
+# arguments
+# "If it walks like a duck and quacks like a duck, it doesn't necessarily mean
+# it's a duck, but I don't care since it does the job"
+# When writing a method I might want to test that it gets absolutely a Foo
+# argument, but really I need an object with enough methods similar to Foo that
+# I can call in the body of my method, not necessarily a Foo as long as it has
+# the right methods
+# It allows more code reuse = you only care about an object is what messages
+#you can send it
+
+#doesn't necessarily expect an object instance of class Point and use its
+#getters/setters for instance variable x to negate it in place (create
+#reflection mirror)
+
+# Actually this method takes anything with method x= and x where result of x
+# has a * method (not necessarily multiplication) that takes -1. Sends result
+# of calling x the * message with -1 and sends that result to x=
+def mirror_update pt
+  pt.x = pt.x * (-1)
+end

@@ -1,0 +1,345 @@
+// Programming Languages, Dan Grossman
+// Section 9: Subtypes 
+
+/* Subtypes in statically-typed OOP
+   
+Will Use made up programming language with:
+- records with mutable fields half ML, half Java (like objects that have only
+instance variables, no methods) -> get/set fields
+- syntax mostly similar to ML (but with subtypes and mutable fields)
+- type system with record types
+
+Syntax
+Record creation (like ML)
+{f1=e1, f2=e2,..., fn=en}
+evaluate ei, make record expression
+
+Record field access (like OOP)
+e.f
+evaluate e to record v with an f field, get contents of f field
+
+Record field update (like OOP)
+e1.f = e2
+evaluate e1 to record v1 and e2 to value v2, change v1's field (which must
+exist) to v2, return v2
+
+Record Types
+{f1:t1, f2:t2,..., fn:tn} describes records that have field f1 holding type t1..
+
+Type checking rules
+- record creation: if e1 has type t1,..., en has type tn then record has type
+{f1:t1,..., fn:tn}
+- access record field: if e has record type containing field f of type t (f : t)
+then e.f has type t. If record doesn't have field f, it doesn't type check
+- record update: if e1 has record type containing field f : t and e2 has type t,
+then e1.f = e2 has type t. After mutation f has same type then e.f has type t. 
+
+Subtypes
+
+Make type system more flexible
+e.g. {x:real,y:real,c:string} is subtype of {x:real,y:real}, but
+{x:real,c:string} isn't one since it misses y field
+
+Expression {f1:t1, f2:t2,...,fn:tn} can also have type {f1:t1,fn:tn} with some
+fields removed which is more generic. Functions which expect more generic type
+with fields f1, f2 can be passed arguments with fields f1,f2 and f3 which
+type-checks.
+
+Changes to language to support subtypes:
+1. add subtype relation: t1 <: t2 means t1 is subtype of t2. Binary relation
+between 2 types, either one is subtype of the other or not (like 1 < 2)
+Principle of subtitutability = every value of type t1 can be used in every way a
+t2 can be
+2. add typing rule that uses subtyping: if e has type t1 and t1<:t2 then e
+(also) has type t2
+
+Rules to meet substitutability test:
+- "width" subtyping = a supertype can have a subset of fields with the same
+types. A wider record can be subtype of slimmer record. We can drop fields to
+get supertype.
+{x:real,y:real, c:string} and {x:real,y:real}
+- "permutation" subtyping =  a supertype can have the same set of fields with
+the same types in a different order. We can reorder fields to get supertype.
+{x:real,y:real} and {y:real,x:real}
+- transitivity: if t1 <: t2 and t2 <: t3 then t1 <: t3
+- reflexivity: every type is subtype of itself t <: t
+
+Depth subtyping rule?
+if ta <: tb, then {f1:t1,...,f:ta,..., fn:tn} <: {f1:t1,...,f:tb,..., fn:tn}?
+We can go inside record type.
+e.g. sphere of type {center: {x:real, y:real, z:real}, r:real} <: circle of type
+{center: {x:real, y:real}, r:real} because depth subtyping (go into center
+record) and width subtyping (supertype drops field z) {x:real, y:real, z:real}
+<: {x:real, y:real}
+This rule would break soundness so it shouldn't be added: because it allows
+programs that can access missing record fields. It is not worth adding rule that
+makes type system more flexible if it breaks soundness
+
+e.g in pseudo-code (made up lanuage)
+fun setToOrigin (c:{center:{x:real,y:real}, r:real}) = c.center = {x=0.0,y=
+0.0} (*function that expects 2D circle, mutates center field*)
+val sphere:{center:{x:real,y:real,z:real},r:real} = {center={x=3.0, y=4.0, z=0.
+0}, r = 1.0}
+val _ = setToOrigin(sphere)(* pass sphere as a subtype of circle would type
+check. It mutates sphere so is not sphere any more, sphere has changed its type
+from holding z field in center field to not holding it*)
+val _ = sphere.center.z (*Would also type check since sphere's type has z,
+but it would be runtime error since no z field any longer. Not sound since
+didn't prevent missing field error.*)
+
+If language with records/objects has getters and setters, depth subtyping
+introduces unsoundness because subtyping shouldn't change the type of fields,
+which would be possible with mutation.
+If language with records/objects has getters, but no setters (fields are
+immutable), depth subtyping is sound because subtyping just allows access to
+field contents, doesn't mutate them.
+A language must choose 2 out 3: setters, depth subtyping and soundness. Can't
+be sound with setters and depth subtyping
+
+Java/C# Arrays subtyping
+Arrays should work just like records in terms of subtyping so Java/C# allow that
+if t1 <: t2 then t1[] <: t2[] (an array of t1's is subtype of an array of t2's)
+It allows array subtyping, but checks at run-time when we store into an array
+that it's right type (not the supertype).
+*/
+
+class Point {...}
+class ColorPoint extends Point {...}
+
+void m1(Point[] pt_arr){
+    pt_arr[0] = new Point(3,4);//will throw exception because we try to assign
+    //into an array of ColorPoint's a Point
+}
+String m2(int x){
+    ColorPoint[] cpt_arr = new ColorPoint[x];// make array of ColorPoint's
+    for(int i=0;i<x;i++){
+	cpt_arr[i]= new ColorPoint(0,0,"green");
+    }
+    /* tries to mutate first element from type ColorPoint to supertype Point
+       It type checks, but runtime error in m1 call named ArrayStoreException
+       before getting missing color field on next line.
+       if e1[e2]=e3 when we store into an array e1 at runtime, it checks
+       run-time class of e1's elements (e.g. ColorPoint), run-time class of e3
+       and do not allow storing a supertype (Point).
+       Altough not caught  by type system, this avoids Java to be unsound */
+    m1(cpt_arr);
+    // never reach this
+    return cpt_arr[0].color;
+}
+
+/*
+Java/C# null
+= keyword, not an object, hasn't fields or methods, like an empty record so it
+could be a supertype of everything. Instead null is subtype of everything, can
+have any object type. Wherever you must pass type t, you can pass also null, it
+type checks, then get NullPointer exception when try to read field e.f or call
+method e.m() if e is null. At run-time it checks if receiver is null and throws
+NullPointer exception. It doesn't prevent this error statically.
+It would be better to separate types that could be null (e.g. options in ML used
+when you know the possibility you might not have any data) from types that
+definitely are not null (strings, ints etc.). With ML's options you
+are sure that those that are not options couln't be null, no need to check
+at run-time to avoid exceptions.
+
+Function subtyping
+Caller can pass to a function an argument of subtype of the paramater the
+function expects (because extra fields not used in body). Also result of
+function call can be a subtype (ColorPoint) of expected result type (Point)
+(because extra fields not used by caller).
+
+A function type can be a subtype of another function type?
+If a function expected parameter is itself a function of type t1->t2, can you
+pass an argument of type t3->t4?
+
+Return-type subtyping is OK
+e.g.
+(*computes distance moved from p to point resulted from applying f to p*)
+fun distMoved (f:{x:real,y:real}->{x:real,y:real},p:{x:real,y:real}) =
+    let val p2:{x:real,y:real} = f p (*apply f to p to get new point p2*)
+        val dx:real = p2.x - p.x
+	val dy:real = p2.y - p.y
+    in Math.sqrt(dx*dx+dy*dy) end
+(*flips point on both axis and adds color field*)
+fun flipGreen p = {x=~p.x,y=~p.y,color="green"}
+d = distMoved(flipGreen,{x=3.0,y=4.0})
+
+Return type of flipGreen is ColorPoint, but distMoved expects as argument a
+function with return type Point.
+It's ok by adding rule: if ta <: tb, then function type t->ta <: t->tb.
+A function can return more than it needs to, something with fields we don't need
+(a subtype) = function types are covariant in their return type
+
+Argument-type subtyping is wrong
+e.g.
+...
+fun flipIfGreen p = if p.color = "green"
+                    then {x=~p.x,y=~p.y}
+                    else {x=p.x,y=p.y}
+d = distMoved(flipIfGreen,{x=3.0,y=4.0})
+Argument type of flipIfGreen is ColorPoint {x:real,y:real,color:string}, but it
+is called with Point {x:real,y:real}.
+We should make sure it doesn't type-check. It is unsound: ta <: tb does not
+allow ta->t <: tb->t (flipIfGreen is not subtype of f). You can't assume this
+function doesn't need all the fields, it might need color field so you can't
+drop fields from arguments to functions.
+
+Argument-type subtyping backwards is OK
+e.g.
+...
+fun flipX_Y0 p = {x=~p.x,y=0.0}
+d = distMoved(flipX_Y0,{x=3.0,y=4.0})
+Argument type of flipX_Y0 is just {x:real}, but it is called with Point {x:real,
+y:real}.
+If tb <: ta then ta->t <: tb->t.
+A function can assume less than it needs to about arguments. f needs flipX_Y0 to
+work as thought it had type Point->Point and flipX_Y0 can act as if it had this
+type even though it does not need its argument to have a y field.
+= function types are covariant in their argument type (flipped)
+
+Combine both
+e.g.
+...
+fun flipXMakeGreen p = {x=~p.x,y=0.0,color="green"}
+d = distMoved(flipXMakeGreen,{x=3.0,y=4.0})
+flipXMakeGreen has type {x:real}->{x:real,y:real,color:string} which is subtype
+of {x:real,y:real}->{x:real,y:real}.
+flipXMakeGreen requires less than it's given as argument (only x field) and
+returns more than it needs to (extra color field). So it can act as f.
+
+If t3<:t1 and t2<:t4 then t1->t2 <: t3->t4
+Function subtyping contravariant in argument(s) and covariant in results.
+Instead of expected function f I can pass its subtype with as argument a
+supertype of f's arg (needs less info) and return type subtype of f's return
+(produce more info).
+! Covariant arguments are wrong, contravariant arguments and covariant return
+types. Arguments need to be flipped around to make subtypes otherwise it breaks
+soundness of type system.
+
+Subtyping for OOP (Java, C#)
+
+Class names are also types: when declare class C you get also new type C.
+Subclasses are also subtypes: if D subclass of C then D is subtype of C. Through
+transitivity you're a subtype of anything higher than you in subclass hierarchy
+all the way to Object at the top.
+Substitution principle: instance of subclass could be used in place of instance
+of superclass without raising issues with calling methods or access fields (like
+instance variables in Ruby, but part of class definition so part of C's type)
+that don't exist.
+Object is essentially a record holding fields and methods:
+- fields mutable (-> depth subtyping not sound)
+- methods are immutable functions that also have access to self. Can be subtyped
+
+Type system for subtypes/subclasses like for records types
+- subtypes could have have extra fields and methods (like {x:real,y:real} for
+{x:real}. Code will not care if the object has some extra fields that it
+promised to have.
+- overriding methods could have contravariant arguments and covariant results
+compared to method overriden. The argument if subtype need's to be supertype of
+what it was in the superclass while return type can be subtype of what it was in
+superclass method. Sound because method slots are immutable.
+
+If class A has a field of type t0 and a method m of type t1->t2 and subclass B
+of class A that overrides m and take a t3 and returns a t4, for the type B to
+be a subtype of the type A it needs that t1 <: t3 and t4 <: t2
+
+In actual Java, C# a subclass can override a method with covariant return type
+(considered overriding superclass's method if return type in subclass produces
+more), but doesn't accept contravariant arguments (instead it makes a new method
+in subclass with same name as the method in superclass, not-overriding it)
+
+Class vs Type
+- A class defines an object's behaviour. It has method definitions with bodies
+with code and return things.
+Subclassing inherits behavior and changes it via extension and overriding.
+- A type describes an object's methods'arguments and result types (e.g.this type
+has a method foo that takes a string and produces an int). But type is about
+interface, doesn't include method bodies, just method signatures.
+A subtype is substitutable in terms of its fields and method types.
+
+In Java/C# a class name is both a class and a type. Both are sound:do not allow
+subtypes to do things that would lead to "method missing" or accessing a field
+at the wrong type.
+
+Java fields in super/subclass
+Superclass defines field foo of type t1, subclass can define field with same
+name foo but different type t2. Now subclass has 2 fields named foo of types t1
+and t2 in the same object. It depends of which class this object is an instance
+of to know which field foo we are talking about with e.foo
+
+self/this subclass OOP
+Methods in objects might get an extra special argument self, which is not like
+the other arguments contravariant, but covariant: self in method of subclass
+(is an instance of the subclass, can have extra fields and methods) is subtype
+of self in method of superclass (instance of superclass)
+
+Generics vs subtyping OOP
+Generics (type parameters, polymorphism) good when code can work for any type of
+thing, but some of the things have to be the same type
+- type for function that combine other functions
+(* ('b->'c) * ('a->'b) -> ('a->'c)*)
+fun compose (g,h) = fn x => g (h x)
+- type for functions that operate on generic collection
+val length : 'a list -> int
+Subtyping not good for containers, would need to declare x and Y of type Object
+so afterwards can set them as strings, int etc. (subtypes of Object), but when
+retrievent data from pair would need to specify it's actualy not Object, but
+string/int and would need to convert them at run type (downcasting).
+*/
+// generics in Java T1 and T2 works for any types T1 and T2
+class Pair<T1,T2> {
+    T1 x;
+    T2 y;
+    Pair(T1 _x, T2 _y){x = _x; y = _y;}
+    Pair<T2,T1> swap(){
+	return  new Pair<T2,T1>(y, x);
+    }
+}
+
+/*
+Subtypes are good when code needs object that behaves like a Foo, but fine to
+use instead object that has more than Foo (subclass of Foo)
+xe.g. ColorPoint instead of Point,
+GUI widgets: superclass specifies big ideas anything that you put on the screen,
+that responds to mouse clicks, can be resized, then things actually being passed
+have much more (color, default font etc.)
+
+Bounded polymorphism = use generics and subtypes together
+Possible in Java, C#, C++
+"Any type T1 that is a subtype of T2".
+e.g. method that takes list of points and a circle (defined with center point
+and radius) and returns new list of points from argument that lie within circle 
+Would like to pass to method list of ColorPoint and get back list of ColorPoint.
+Java/C# disallows since list of ColorPoint is not subtype of list of Point
+(because depth subtyping unsound).
+
+Given list of T's method inCircle will give back a list of T's, but it assumes
+that T is subtype of Point. Caller needs to meet this constraint, must
+instantiate T with a subtype of Point (including Point, e.g. ColorPoint), since
+it needs to call its distance method)
+
+pseudo-code:
+List<T> inCircle(List<T> pts, Point center, double r) where T <: Point{
+...
+}
+*/
+//method inCircle assumes Point has distance method to other Point
+List<Point> inCircle(List<Point> pts, Point center, double r){
+    //create new empty collection
+    List<Point> result = new ArrayList<Point>();
+    //loop to check distance from all points to center and add to result
+    for(Point pt: pts)
+	if(pt.distance(center) <= r)
+	    result.add(pt);
+    return result;
+}
+
+// bounds
+// use <> to introduce it's a generic method, specify that T is subtype of Point
+<T extends Point> List<T> inCircle(List<T> pts, Point center, double r){
+    List<T> result = new ArrayList<T>();
+    for(T pt: pts)
+	if(pt.distance(center) <= r)
+	    result.add(pt);
+    return result;
+}
+

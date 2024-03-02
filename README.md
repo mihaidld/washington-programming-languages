@@ -2,13 +2,17 @@
 
 #### Description:
 
-Work during following programming course from University of Washington on Coursera:
+Work during following programming courses from University of Washington on Coursera:
 
 - [Programming Languages, Part A](https://www.coursera.org/learn/programming-languages)
+- [Programming Languages, Part B](https://www.coursera.org/learn/programming-languages-part-b)
+- [Programming Languages, Part C](https://www.coursera.org/learn/programming-languages-part-c)
+
+Completed all assignments, exams and extra practice problems, reviewed peer assignments and received course certificates from Coursera.
 
 #### Learnings:
 
-- an introduction to the basic concepts of programming languages, with a strong emphasis on functional programming.
+- the basic concepts of all programming languages, with a strong emphasis on functional programming.
 - using languages ML, Racket, and Ruby as vehicles for teaching the concepts, but the real intent is to teach enough about how any language “fits together” to make you more effective programming in any language -- and in learning new ones.
 - gives a framework for understanding how to use language constructs effectively and how to design correct and elegant programs.
 - think more deeply than in terms of the particular syntax of one language.

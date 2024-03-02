@@ -1,0 +1,10 @@
+#lang racket
+(define (mystery s)
+  (lambda ()
+    (let ([pr (s)])
+      (if (car pr)
+          (cons (car pr) (mystery (cdr pr)))
+          ((mystery (cdr pr)))))))
+(define nats
+  (letrec ([f (lambda (x) (cons x (lambda () (f (+ x 1)))))])
+    (lambda () (f 1))))

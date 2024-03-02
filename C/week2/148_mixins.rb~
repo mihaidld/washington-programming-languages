@@ -1,0 +1,210 @@
+# Programming Languages, Dan Grossman
+# Section 8: Mixins
+
+=begin
+
+Mixin = only a collection of methods (a bunch of method definitions).
+Not a class, mixin cann't be instantiated
+
+In Ruby a class has 1 superclass (inherits its methods), but also can include
+number of mixins (gets their methods too). Like adding method definitions to
+some class, but avoids copy/paste them when including a mixin.
+Include mixin makes its methods part of the class:
+- extend or override in the order mixins are included. E.g. method m in
+mixin 1 overriden by m in mixin 2 included later
+- can use self->  more powerful than helper methods because mixin methods can
+access methods and instance variables on self not defined in the mixin, become
+part of class definition
+
+Mixins change method lookup:
+- when looking for message receiver obj's method m, look in obj's class, then
+mixins that class includes (check mixins in order where a later include will
+shadow an earlier include), then obj's superclass, then the superclass's mixins
+etc. 
+- mixin methods can get/set instance variables (since included in same object),
+but poor style for mixin methods to access instance variables
+
+=end
+
+# mixin Double definition using module keyword
+# module supports also namespace management
+module Doubler
+  def double
+    # uses self's + message, not defined in Doubler, assumes any class that
+    # includes this mixin, will have + defined
+    self + self
+  end
+end
+
+class Pt
+  attr_accessor :x, :y
+  include Doubler #include mixin so class Pt has double method 
+  def + other
+    ans = Pt.new
+    ans.x = self.x + other.x
+    ans.y = self.y + other.y
+    ans
+  end
+end
+
+# update built-in class String to add method double to concatenate s to itself
+class String
+  include Doubler
+end
+
+=begin
+Popular mixins
+
+Comparable
+defines methods <, >, ==, !=, >=, <= in terms of <=> (spaceship operator)
+assumed to be defined by class that includes this mixin.
+<=> returns negative number if left operand is less (or if current object is
+less than argument passed to method <=>), 0 if they're equal and positive number
+if right operand is less
+
+> 3 <=> 7
+=> -1 
+> 3 <=> 3
+=> 0 
+> 4 <=> 3
+=> 1
+Like in sequence of 3 symbols <=> with index -1 for <, 0 for = and 1 for >
+since 3 less than 4 we produce index corresponding to < which is -1
+3 < 2 (=> false) is implemented by Comparable mixin included by class Integer
+defining < to call <=> then check if result is < 0  
+
+Enumerable
+defines many iterators (e.g. map, find) in terms of each. Need to define in
+class including Enumerable a method each.
+
+No need for multiple inheritance with Ruby's mixins: a class can inherit
+specific methods from its superclass and include mixins to add more methods.
+Mixins though are not full replacement for multiple inheritance because
+Color can be a mixin for Point (adds extra functionality), but Artist and
+Cowbow need to be equal subclasses of Person and it would be odd for an
+ArtistCowboy to just inherit one subclass Artist and include mixin CowboyMethods
+and still ArtistCowboy doesn't get me two pockets.
+
+=end
+
+# these are probably the two most common uses in the Ruby library:
+#  Comparable and Enumerable
+
+# you define <=> and you get ==, >, <, >=, <= from the mixin
+# (overrides Object's ==, adds the others)
+class Name
+  attr_accessor :first, :middle, :last
+  include Comparable #defines  ==, >, <, >=, <=, !=
+  def initialize(first,last,middle="")
+    @first = first
+    @last = last
+    @middle = middle
+  end
+
+  # define spaceship operator 
+  def <=> other
+    l = @last <=> other.last # <=> defined on strings
+    #if not same last name return l, else keep comparing
+    return l if l != 0
+    f = @first <=> other.first
+    #if same last name, not same first name return f, else keep comparing
+    return f if f != 0
+    @middle <=> other.middle
+  end
+end
+
+=begin
+> n1 = Name.new("Daniel","Grossman", "Joseph")
+=> #<Name:0x4387b79e @middle="Joseph", @first="Daniel", @last="Grossman"> 
+> n2 = Name.new("Barrack","Obama", "Hussein")
+=> #<Name:0x2cbb3d47 @middle="Hussein", @first="Barrack", @last="Obama"> 
+> n1 <=> n2
+=> -1 
+> n1 > n2
+=> false 
+> n1 != n2
+=> true
+=end
+
+# Note ranges are built in and very common, to avoid conflict name MyRange
+# you define each and you get map, any?, etc.
+# (note map returns an array though)
+# mixin Enumerable doesn't know how to iterate through a MyRange, just calls
+# each and passes it the block, and each creates loop calling block from low
+# upto high
+
+class MyRange
+  include Enumerable
+  def initialize(low,high)
+    @low = low
+    @high = high
+  end
+  def each
+    # for low, upto high, using a while loop it yields (calls block with i)
+    # then increments i
+    # local variable i starts as @low
+    i=@low
+    while i <= @high
+      yield i #call block with current i as argument
+      i=i+1
+    end
+  end
+end
+
+=begin
+> r2 = MyRange.new(5,12)
+=> #<MyRange:0x13c10b87 @high=12, @low=5> 
+> r2.each {|i| puts i}
+5
+6
+7
+8
+9
+10
+11
+12
+=> nil 
+> r2.count {|i| i.odd?}
+=> 4 
+> r2.any?
+=> true
+=end
+
+# here is how module Enumerable could implement map:
+# (but notice Enumerable's map returns an array,
+#  *not* another instance of the class :( )
+# def map
+#   arr = []
+#   each {|x| arr.push x }
+#   arr
+# end
+
+# this is more questionable style because the mixin is using an
+# instance variable that could clash with classes and has to be initialized
+module Color
+  attr_accessor :color
+=begin
+  def color #defines getter method
+    @color
+  end
+  def color= c
+    @color = c #defines setter method
+  end
+=end
+  def darken
+    self.color = "dark " + self.color
+  end
+end
+
+class Pt3D < Pt
+  attr_accessor :z
+  # rest of definition omitted (not so relevant)
+end
+
+class ColorPt < Pt
+  include Color #uses mixin Color to add color functionality to Pt
+end
+
+class ColorPt3D < Pt3D
+  include Color #uses mixin Color to add color functionality to Pt3D
+end

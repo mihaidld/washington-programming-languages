@@ -1,0 +1,238 @@
+require_relative './encounter-provided'
+
+=begin
+
+A Little Adventure
+To practice with double-dispatch and OO/functional decomposition a bit, we'll do
+something similar to the homework problem.
+
+You're given an ML program implementing a small bit of a very simple
+role-playing engine. This is not an actual game, just something that pits a
+character (either a knight or a wizard) against a series of various challenges.
+Since knights and wizards have very different approaches to solving the problems
+facing them, we need to implement small pieces of logic changing the state of
+the game depending on the combination of character's type and the type of the
+challenge. Looks like a perfect match for double dispatch!
+
+Your task is to inspect the provided ML definitions and reimplement the same
+logic in Ruby using a principled object-oriented approach. Some code responsible
+for progressing the overall world state is provided. Also this template to be
+completed.
+
+Note that the double dynamic dispatch is asymmetric in this case.
+=end
+
+class Character
+  attr_reader :hp # for testing purposes only
+  def initialize hp
+    @hp = hp
+  end
+
+  def resolve_encounter enc
+    if !is_dead?
+      play_out_encounter enc
+    end
+  end
+
+  def is_dead?
+    @hp <= 0
+  end
+
+  # method sufficient for Knight, to be overriden for Wizard
+  # change state when getting potion
+  def get_potion potion
+    @hp += potion.hp
+  end
+
+  private
+
+  # empty since body depends on type of Character
+  def play_out_encounter enc
+  end
+
+end
+
+class Knight < Character
+  attr_reader :ap  # for testing purposes only
+  def initialize(hp, ap)
+    super hp
+    @ap = ap
+  end
+
+  def to_s
+    "HP: " + @hp.to_s + " AP: " + @ap.to_s
+  end
+
+  # double dispatch let encounter influence me as a knight
+  def play_out_encounter enc
+    enc.influence_knight self
+  end
+
+  # change state when receiving damage from floor/monster
+  def receive_damage(dam)
+    if @ap == 0
+      @hp -= dam # ap is 0 so hp take the damage
+    elsif dam > @ap
+      # store in local variable current value of ap for use in recursion
+      ap_cur = @ap
+      @ap = 0 #set ap to 0
+      receive_damage(dam - ap_cur)# recursive call with damage reduced by all ap
+    else
+      @ap -= dam # enough ap so ap take the damage
+    end
+  end
+
+  # change state when getting armor
+  def get_armor ap
+    @ap += ap #increase ap
+  end
+
+end
+
+class Wizard < Character
+  attr_reader :mp  # for testing purposes only
+  def initialize(hp, mp)
+    super hp
+    @mp = mp
+  end
+
+  def to_s
+    "HP: " + @hp.to_s + " MP: " + @mp.to_s
+  end
+
+  # override class method for wizard dead also if mp < 0
+  def is_dead?
+   super or @mp < 0
+  end
+
+  # double dispatch let encounter influence me as a wizard
+  def play_out_encounter enc
+    enc.influence_wizard self
+  end
+
+  # change state when receiving damage from floor
+  def receive_damage_floor(dam)
+    if @mp > 0
+      @mp -= 1 #still has mp, need to make spell to avoid damage so decrement mp
+    else
+      @hp -= dam # hp take damage
+    end
+  end
+
+  # change state when receiving damage from monster
+  def receive_damage_monster(hp)
+    @mp -= hp # mp take damage from monster's hp
+  end
+
+  # override method to increase mp also
+  def get_potion potion
+    super
+    @mp += potion.mp # increase mp
+  end
+
+end
+
+class FloorTrap < Encounter
+  attr_reader :dam
+
+  def initialize dam
+    @dam = dam
+  end
+
+  def to_s
+    "A deadly floor trap dealing " + @dam.to_s + " point(s) of damage lies ahead!"
+  end
+  
+  def influence_knight knight
+    # dispatch back to knight with info on floor's damage
+    knight.receive_damage(@dam)
+  end
+
+  def influence_wizard wizard
+    # dispatch back to wizard with info on floor's damage
+    wizard.receive_damage_floor(@dam)
+  end
+end
+
+class Monster < Encounter
+  attr_reader :dam, :hp
+
+  def initialize(dam, hp)
+    @dam = dam
+    @hp = hp
+  end
+
+  def to_s
+    "A horrible monster lurks in the shadows ahead. It can attack for " +
+        @dam.to_s + " point(s) of damage and has " +
+        @hp.to_s + " hitpoint(s)."
+  end
+
+  def influence_knight knight
+    # dispatch back to knight with info on damage
+    knight.receive_damage(@dam)
+  end
+
+  def influence_wizard wizard
+    # dispatch back to wizard with info on monster's hit points
+    wizard.receive_damage_monster(@hp)
+  end
+end
+
+class Potion < Encounter
+  attr_reader :hp, :mp
+
+  def initialize(hp, mp)
+    @hp = hp
+    @mp = mp
+  end
+
+  def to_s
+    "There is a potion here that can restore " + @hp.to_s +
+        " hitpoint(s) and " + @mp.to_s + " mana point(s)."
+  end
+
+  def influence_knight knight
+    # dispatch back to knight with info on potion
+    knight.get_potion self
+  end
+
+  def influence_wizard wizard
+    # dispatch back to wizard with info on potion
+    wizard.get_potion self
+  end
+end
+
+class Armor < Encounter
+  attr_reader :ap
+
+  def initialize ap
+    @ap = ap
+  end
+
+  def to_s
+    "A shiny piece of armor, rated for " + @ap.to_s +
+        " AP, is gathering dust in an alcove!"
+  end
+
+  # dispatch back to knight with info on ap
+  def influence_knight knight
+   knight.get_armor @ap
+  end
+
+  # doesn't do anything to wizard
+  def influence_wizard wizard
+  end
+end
+
+if __FILE__ == $0
+  Adventure.new(Stdout.new, Knight.new(15, 3),
+    [Monster.new(1, 1),
+    FloorTrap.new(3),
+    Monster.new(5, 3),
+    Potion.new(5, 5),
+    Monster.new(1, 15),
+    Armor.new(10),
+    FloorTrap.new(5),
+    Monster.new(10, 10)]).play_out
+end

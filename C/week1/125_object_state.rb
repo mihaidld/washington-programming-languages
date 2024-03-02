@@ -1,0 +1,219 @@
+# Programming Languages, Dan Grossman
+# Section 7: Object State
+
+# State persists accross object's lifetime, can grow and change from
+# time object is created
+# State is only accessible by calling object's methods (private to object)
+# Good for modularity and abstraction reasons: to interact with state (access
+# and change it) need to use object methods (an interface) not directly
+# so could change implementation of class (what instance variables are used)
+# without clients knowing of it if they use same methods
+
+
+# State = collection of variables (called instance variables / fields)
+# syntax: to create a variable, assign to something that starts with @
+# e.g. inside a method's body: @foo = 4 so that object's instance variable
+# foo is now 4. Then in another method we can read @foo and get 4
+# instance variable springs into being with assignment (misspelling creates
+# new state).
+# If using @foo which was never assigned before for that object, we get
+# nil object (sort of null)
+
+# Aliasing
+# when using new we get reference to new object with different state,
+# no initial state
+# variable assignment x = y creates an alias, both variables hold references
+# to the same object
+
+
+class A
+  def m1
+    #assigns to foo instance variable value 0
+    #if field foo exists, it updates it
+    #if doesn't exist, it creates it and initializes it to 0
+    @foo = 0
+    @bar = 0
+  end
+
+  def m2 x
+    @foo += x #adds x to foo
+  end
+
+  def foo
+    @foo #looks up the value of field foo and returns it 
+  end
+
+end
+
+class B 
+  # uses initialize method, which is better than m1 (like constructors in Java)
+  # good style to create instance variables in initialize, altough it's possible
+  # also in other methods
+  # initialize can take arguments too (here providing defaults)
+  # it is called when new object is created with new
+  # whatever arguments are passed to new, they get passed to initialize
+  # e.g. b = B.new(7)
+
+  #excellent for creating object's invariants
+  def initialize(f=0)
+    @foo = f
+  end
+
+  def m2 x
+    @foo += x
+  end
+
+  def foo
+    @foo
+  end
+
+end
+
+
+# class-variable, class-constant, and class-method
+# are shared by instances of a class (except class method specific to class)
+
+# Class variables are shared by all instances of same class
+# syntax: starts with @@: e.g. @@foo
+# less common
+# private to objects of the class
+
+# Class constants, defined in the class, start with capital letter
+# e.g. Foo
+# should not be mutated
+# can be used inside the class, or since they are public they are visible
+# outside class C as C::Foo
+
+# Class method (like Java/C# static method)
+# syntax inside class C:
+# def self.method_name (args)
+#   ...
+# end
+
+# to use class method of class C, we call it on class name, not object instance
+# C.method_name (args)
+# class itself is also an object
+# class method can not access instance variables or variables, which separate
+# in objects
+# just a helper that can use class constants and class variables
+class C
+
+  Dans_Age = 38 #class constant
+
+  def self.reset_bar #class method
+    @@bar = 0        #sets class's variable bar to 0
+  end
+
+  def initialize(f=0)
+    @foo = f
+  end
+
+  def m2 x
+    @foo += x
+    #bar class variable is shared by multiple objects
+    #if we call m2 method for 2 instances  c1.m2(6); c2.m2(7)
+    #class variable bar gets incremented every time:c1.bar gives 2
+    #altough objects have different foo fields: c1.foo 6, c2.foo 7
+    @@bar += 1  
+  end
+
+  def foo
+    @foo
+  end
+  
+  def bar
+    @@bar
+  end
+end
+
+
+# To make object state public visible define getters/setters methods
+
+# e.g. getter for foo field
+# def get_foo
+#   @foo
+# end
+# setter
+# def set_foo x
+#   @foo = x
+# end
+
+# Convention for getter/setter methods for foo field
+# def foo
+#   @foo
+# end
+# def foo= x
+#   @foo = x
+# end
+#Allows syntactic sugar: when using a method that ends in =, can put space
+#before =, makes using setter look nicer:
+#e.g. e.foo = 42 same as calling method foo= e.foo= 42 or e.foo=(42)
+
+# Shorthand for defining multiple getters in class definition
+# attr_reader :foo, :bar -> creates getters for foo and bar fields
+# attr_accessor :foo, :bar -> creates getters and setters for foo and bar fields
+
+# Method visibility
+# - private: only available to object itself (just m or m(args) not self.m)
+# - protected: available only to objects of same class/subclasses
+# - public: available to all code (methods are public by default)
+# The modifier is "effective" until the next modifier, but that still allows
+#putting public/protected/private before each method.
+
+class Foo 
+  def m1 #by default methods public so m1 public 
+    6
+  end
+
+  protected #from now methods will be protected until next visibility keyword 
+
+  def m2 #m2 protected, accessible only to objects of class Foo
+    3
+  end
+
+  public #change visibility, m3 public
+
+  def m3 x
+    m5 x #calls protected method m5
+  end
+
+  private
+  
+  def m4 #change visibility, m4 private
+    5
+  end
+
+  protected def m5 x
+    x
+  end
+end
+
+# example uses 
+=begin
+x = A.new
+y = A.new # different object than x
+z = x # alias to x
+x.foo # get back nil because instance variable not initialized
+x.m2 3 # error because try to add with nil object
+x.m1 # creates @foo in object x refers to
+z.foo # remember, x and z are aliases
+z.m2 3
+x.foo
+y.m1
+y.m2 4
+y.foo
+x.foo
+
+w = B.new 3
+v = B.new
+w.foo + v.foo
+
+d = C.new 17
+C.reset_bar()
+d.m2 5
+e = C.new
+e.m2 6
+d.bar
+forty = C::Dans_Age + d.bar
+
+=end
