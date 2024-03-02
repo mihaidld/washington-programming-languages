@@ -1,4 +1,4 @@
-# Course Programming Languages Part A
+# Course Programming Languages
 
 #### Description:
 
